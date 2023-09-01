@@ -4,8 +4,10 @@ import json
 from retrying import retry
 from colorama import Fore, Style
 
+# Importa funções personalizadas de OFDM_64_QAM
 from OFDM_64_QAM import *
 
+# Configuração de endereços IP e tokens
 ip = '196.168.0.103'
 token = '/token=teleco2k23g5'
 url1 = 'http://' + ip + ':8000' + token
@@ -23,21 +25,25 @@ def make_request(url):
     return response.json()
 
 try:
+    # Faz uma requisição para 'CarrierSRS' e obtém informações
     CarrierSRS = make_request(url1)
     k = CarrierSRS['k']
     p = CarrierSRS['p']
     cp = CarrierSRS['cp']
     print(Fore.GREEN + f"Obtido JSON de 'CarrierSRS': K={k}, P={p}, CP={cp}" + Style.RESET_ALL)
 
+    # Faz uma requisição para 'ServiceSRS' e obtém informações
     ServiceSRS = make_request(url2)
     snr = ServiceSRS['snr']
     service = ServiceSRS['service']
     modulation = ServiceSRS['modulation']
     print(Fore.GREEN + f"Obtido JSON de 'ServiceSRS': SNR={snr}, Service={service}, Modulation={modulation}" + Style.RESET_ALL)
 
+    # Calcula a BER usando os parâmetros obtidos
     dicInfo = get_ber(K=int(k), CP=int(cp), P=int(p), SNRdb=int(snr))
     print(Fore.GREEN + "\n\nCálculo de BER concluído:"+ str(dicInfo['BER']) + Style.RESET_ALL)
 
+    # Determina o serviço com base na resposta e define um padrão de BER
     if service == '0':
         servico = 'DADOS'
         padrao = 0.33
@@ -48,18 +54,19 @@ try:
         servico = 'CRITICO'
         padrao = 0.05
 
-    mensagem = 'O servico '+servico+' e ' 
+    # Verifica se a modulação é superior a 64QAM e ajusta o padrão de BER
     numero_modulacao = ''.join(filter(str.isdigit, modulation))
     numero_modulacao = int(numero_modulacao)
     if numero_modulacao > 64:
-        print(Fore.BLUE + 'Modulcacao superior a 64QAM' + Style.RESET_ALL)        
+        print(Fore.BLUE + 'Modulação superior a 64QAM' + Style.RESET_ALL)        
         padrao = padrao * 3/4
 
+    # Determina se o serviço é viável com base na BER calculada
     if dicInfo['BER'] <= padrao:
-        mensagem += 'apto'
+        mensagem = 'apto'
         usavel = True
     else: 
-        mensagem += 'inviavel'
+        mensagem = 'inviável'
         usavel = False
 
     # Função para converter Watts em dBm
@@ -67,7 +74,7 @@ try:
         dbm = 10 * math.log10(watts * 1000)
         return dbm
 
-    print(Fore.GREEN + mensagem + ' para padrao ' + str(padrao) + Style.RESET_ALL)
+    # Cria um JSON de resposta com informações relevantes
     jsonResposta = {
         'server': ['CarrierSRS', 'ServiceSRS'],
         'Potencia_RX': str(watts_to_dbm(float(dicInfo['S_Power'])))+ ' [dBm]',
@@ -79,14 +86,15 @@ try:
         'modulacao':modulation
     }
 
-    # Imprimir o JSON identado
+    # Imprime o JSON identado
     print(Fore.YELLOW + json.dumps(jsonResposta, indent=4) + Style.RESET_ALL)
 
 except Exception as e:
+    # Lida com exceções e cria um JSON de resposta de erro
     print(Fore.RED + f'[ERRO] {str(e)}' + Style.RESET_ALL)
     jsonResposta = {
         'mensagem': f'[ERRO] {str(e)}',
     }
 
-    # Imprimir o JSON identado
-    print(Fore.YELLOW + json.dumps(jsonResposta, indent=4) + Style.RESET_ALL)
+    # Imprime o JSON identado
+    print(Fore.YELLOW + json.dumps(jsonResposta, indent=4) + Style.RESET_ALL) 
