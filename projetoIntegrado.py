@@ -16,7 +16,7 @@ url2 = 'http://' + ip + ':8020' + token
 def make_request(url):
     print(Fore.BLUE + "Tentando URL:", url + Style.RESET_ALL)
     response = requests.get(url)
-    
+    print(response.content)
     if response.status_code != 200:
         raise Exception(Fore.RED + f'Requisição falhou com código de status {response.status_code}' + Style.RESET_ALL)
     
@@ -70,7 +70,6 @@ try:
     print(Fore.GREEN + mensagem + ' para padrao ' + str(padrao) + Style.RESET_ALL)
     jsonResposta = {
         'server': ['CarrierSRS', 'ServiceSRS'],
-        'ber': dicInfo['BER'],
         'Potencia_RX': str(watts_to_dbm(float(dicInfo['S_Power'])))+ ' [dBm]',
         'Potencia_do_ruido': str(watts_to_dbm(float(dicInfo['N_Power'])))+' [dbm]',
         'ber': dicInfo['BER'],
